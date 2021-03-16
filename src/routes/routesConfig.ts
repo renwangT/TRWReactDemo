@@ -5,7 +5,6 @@ export const route = {
   key: 'Home',
   redirect: '/basicData/agents',
   routes: [
-    
     {
       exact: true,
       path: '/basicData',
@@ -14,6 +13,13 @@ export const route = {
       redirect: '/basicData/agents',
       component: '@/pages/index',
       routes: [
+        {
+          exact: true,
+          path: '/basicData/users',
+          name: '用户管理',
+          key: 'users',
+          component: '@/pages/basicData/users',
+        },
         {
           exact: true,
           path: '/basicData/template',
@@ -28,7 +34,6 @@ export const route = {
           key: 'baiduEditor',
           component: '@/pages/basicData/baiduEditor',
         },
-        
       ],
     },
   ],

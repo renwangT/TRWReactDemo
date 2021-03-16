@@ -23,7 +23,7 @@ export default defineConfig({
   },
   title: 'tangSystem',
   antd: {
-    //compact: true, // 紧凑型布局
+    compact: true, // 紧凑型布局
   },
   fastRefresh: {},
   hash: true,

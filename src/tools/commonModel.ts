@@ -1,5 +1,7 @@
 import { message } from 'antd';
 import { Effect, ImmerReducer, Reducer, Subscription } from 'umi';
+import createService from '@/tools/commonService';
+
 export interface ObjectType {
   [key: string]: any;
 }
@@ -47,12 +49,9 @@ export interface CommonModelType {
 }
 interface CommonModelArgument {
   namespace: string;
-  add(params: any): Promise<any>;
-  remove(params: any): Promise<any>;
-  update(params: any): Promise<any>;
-  getList(params: any): Promise<any>;
 }
-export default ({ namespace, add, remove, update, getList }: CommonModelArgument): CommonModelType => {
+export default ({ namespace }: CommonModelArgument): CommonModelType => {
+  const { getList, add, update, remove } = createService(namespace);
   return {
     state: {
       namespace,
@@ -249,9 +248,15 @@ export default ({ namespace, add, remove, update, getList }: CommonModelArgument
                   pageSize: res?.pageSize,
                 },
                 loading: false,
-                selectRow: state.selectRow.id ? res.data.find((item: any) => item.id === state.selectRow.id) || {} : {},
+                selectRow: state.selectRow.id
+                  ? res.data.find(
+                      (item: any) => item.id === state.selectRow.id,
+                    ) || {}
+                  : {},
                 modalInitialValues: state.modalInitialValues.id
-                  ? res.data.find((item: any) => item.id === state.modalInitialValues.id) || {}
+                  ? res.data.find(
+                      (item: any) => item.id === state.modalInitialValues.id,
+                    ) || {}
                   : {},
               },
             });

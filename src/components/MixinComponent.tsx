@@ -11,7 +11,10 @@ export interface ComponentProps extends ConnectProps {
   [k: string]: any;
 }
 
-export default class MixinComponet extends React.PureComponent<ComponentProps, any> {
+export default class MixinComponet extends React.PureComponent<
+  ComponentProps,
+  any
+> {
   public filterFormRef = React.createRef<any>();
   public modalFormRef = React.createRef<any>();
   // public namespace;
@@ -75,7 +78,7 @@ export default class MixinComponet extends React.PureComponent<ComponentProps, a
         console.log('%chandleOk result values:', 'background: #FF6A00', values);
         if (this.props.model.isEdit) {
           this.props.dispatch({
-            type: `${this.props.namespace}/edit`,
+            type: `${this.props.namespace}/update`,
             payload: {
               params: {
                 ...values,

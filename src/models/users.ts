@@ -6,7 +6,7 @@ import commonModel, {
 } from '@/tools/commonModel';
 import { Effect, Subscription } from 'umi';
 
-export const namespace = 'template';
+export const namespace = 'users';
 
 export interface State extends CommonModelState {}
 export interface Effects extends CommonModelEffects {}
@@ -21,7 +21,7 @@ export interface ModelType {
 
 const generateModule = commonModel({ namespace });
 
-const template: ModelType = {
+const users: ModelType = {
   namespace,
   state: {
     ...generateModule.state,
@@ -38,7 +38,7 @@ const template: ModelType = {
     setup({ dispatch, history }) {
       return history.listen((location) => {
         // console.log('%clocation', 'background: green', location);
-        if (location.pathname === '/basicData/template') {
+        if (location.pathname === '/basicData/users') {
           dispatch({
             type: 'setState',
             payload: {
@@ -59,4 +59,4 @@ const template: ModelType = {
   },
 };
 
-export default template;
+export default users;

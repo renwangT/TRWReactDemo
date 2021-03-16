@@ -1,7 +1,6 @@
 import { request } from 'umi';
 
-export default (apiName: string) => {
-
+export default function (apiName: string) {
   const getList = (params: any) => {
     return request(`/api/${apiName}`, {
       method: 'get',
@@ -32,6 +31,6 @@ export default (apiName: string) => {
     getList,
     add,
     remove,
-    update
-  }
+    update,
+  };
 }
