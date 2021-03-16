@@ -19,26 +19,26 @@ $ yarn start
 2. 在 **src/models** 下创建 **model**。
 3. 在 **src/pages** 下，在路由对应的文件夹里创建页面
 
-- **注意：** template 是模版，可以复制粘贴，需要修改的 👇
+- **注意：** template 是模版，可以复制粘贴，复制后需要修改的地方如下 👇
 ```
 /src/models/template.ts
 ...
 ...
-export const namespace = 'template'; // 这里是需要修改成相对于的页面
+export const namespace = 'template'; // 这里是需要成修改路由的名称
 const { getList, add, update, remove } = createService(namespace);
 ...
 ...
-// 这里是需要修改成路由的名称
+// 这里跟 namespace 保持一致
 const template: ModelType = {
   ...
   ...
 };
-// 这里是需要修改成路由的名称
+// 这里跟 namespace 保持一致
 export default template;
 
 ```
 ```
-/src/models/template.ts
+/src/models/template.index
 
 import React from 'react';
 import { Table, Divider, Space, Button, Modal } from 'antd';
