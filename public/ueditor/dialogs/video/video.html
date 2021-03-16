@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>图片上传</title>
+    <style>
+    .loading {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto;
+        margin-top: 160px;
+        position: relative;
+        -webkit-animation: load 3s linear infinite;
+    }
+
+    .loading div {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+    }
+
+    .loading span {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #99CC66;
+        position: absolute;
+        left: 50%;
+        margin-top: -10px;
+        margin-left: -10px;
+        -webkit-animation: changeBgColor 3s ease infinite;
+    }
+
+    @-webkit-keyframes load {
+        0% {
+            -webkit-transform: rotate(0deg);
+        }
+        33.3% {
+            -webkit-transform: rotate(120deg);
+        }
+        66.6% {
+            -webkit-transform: rotate(240deg);
+        }
+        100% {
+            -webkit-transform: rotate(360deg);
+        }
+    }
+
+    @-webkit-keyframes changeBgColor {
+        0%,
+        100% {
+            background: #99CC66;
+        }
+        33.3% {
+            background: #FFFF66;
+        }
+        66.6% {
+            background: #FF6666;
+        }
+    }
+
+    .loading div:nth-child(2) {
+        -webkit-transform: rotate(120deg);
+    }
+
+    .loading div:nth-child(3) {
+        -webkit-transform: rotate(240deg);
+    }
+
+    .loading div:nth-child(2) span {
+        -webkit-animation-delay: 1s;
+    }
+
+    .loading div:nth-child(3) span {
+        -webkit-animation-delay: 2s;
+    }
+
+    .load-cover {
+        background: rgba(255, 255, 255, 0.4);
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1000;
+        width: 100%;
+        height: 100%;
+    }
+    .hide {
+        display: none;
+    }
+    .tip{
+    	color: red;
+    }
+    </style>
+    <script type="text/javascript" src="../internal.js"></script>
+</head>
+
+<body>
+    <div style="padding:  10px 20px;text-align: center;">
+        选择视频：<input type="file" name="file" id="FileUpload" accept=".mp4,.avi,.mov,.rmvb,.rm,.flv,.3gp" style="margin-top: 10px;">
+        <span class="btn-upload" id="btn-upload" style="display: inline-block;width: 60px;height: 30px;background: #2d8cf0;border-radius: 2px;line-height:30px;color: #fff;text-align: center;cursor: pointer;">上传视频</span>
+        <p class="video-tip tip"></p>
+    </div>
+    <!-- <div id="mytext" name="mytext" style="padding: 10px 50px;"></div> -->
+    <div style="padding: 10px 20px;text-align: center;">
+        选择封面：<input type="file" name="file" id="FileUpload2" accept="image/*" style="margin-top: 10px;">
+        <span class="btn-upload" id="btn-upload2" style="display: inline-block;width: 60px;height: 30px;background: #2d8cf0;border-radius: 2px;line-height:30px;color: #fff;text-align: center;cursor: pointer;">上传封面</span>
+        <p class="poster-tip tip"></p>
+    </div>
+    <div style="text-align: center;">
+    	<h3>视频预览</h3>
+		<video
+		id="video"
+		autobuffer autoloop loop controls
+		style="margin: 10px auto;width: 420px;height: 200px;"
+		></video>
+    </div>
+    <!-- <div id="mytext2" name="mytext" style="padding: 10px 50px;"></div> -->
+    <div class="load-cover hide">
+        <div class="loading">
+            <div><span></span></div>
+            <div><span></span></div>
+            <div><span></span></div>
+        </div>
+        <div id="percent" style="text-align: center;margin-top: 40px;color: #ff7800;">文件上传中...</div>
+    </div>
+</body>
+<!-- jquery -->
+<script type="text/javascript" src="../../third-party/jquery-1.10.2.min.js"></script>
+<script src="./qiniu.min.js"></script>
+<script type="text/javascript">
+$(function() {
+	var uploadData = null, isUploading = false, isModifyUploadVideo = false;
+	var videoUrl = null,
+		posterUrl = null,
+		vsize = 0,
+		vduration = 0,
+		width = 420,
+		height = 280,
+		align = 'none';
+	var hasPoster = false, hasVideo = false;
+	$('#video').on('durationchange', function(){
+		console.log('videoduration:', this.duration);
+		var time = this.duration / 60;
+		var minutes = Math.floor(time);
+		var second = Math.floor((time - minutes) * 60);
+		if(minutes < 10){
+			minutes = '0'+minutes;
+		}
+		if(second < 10){
+			second = '0'+second;
+		}
+		vduration = minutes + ':' + second;
+	})
+    $(".btn-upload").click(function() {
+    	var fileObj, uploadType = 0;
+    	if(this.id === 'btn-upload'){
+    		uploadType = 0;
+    		fileObj = document.getElementById("FileUpload").files[0];
+    	}else{
+    		uploadType = 1;
+    		fileObj = document.getElementById("FileUpload2").files[0];
+    	}
+        if (typeof(fileObj) == "undefined" || fileObj.size <= 0) {
+            alert("请选择文件");
+            return;
+        }
+        $('.load-cover').removeClass('hide');
+        $('.load-cover').show();
+
+		var token = "";
+        $.ajax({
+			url: 'https://upload-file.tiancaixing.com/api/upload/getToken',
+            type: "get",
+            cache: false,
+            processData: false,
+            contentType: false,
+            success: function(res) {
+                token = res.data;
+				//alert(token);
+				var key = createFileName();
+				var putExtra = {
+				  fname: "",
+				  params: {},
+				  mimeType: uploadType == 0 ? "video/mp4" : fileObj.type
+				};
+				var config = {
+				  useCdnDomain: true,
+				  region: qiniu.region.z0
+				};
+				var observable = qiniu.upload(fileObj, key, token, putExtra, config)
+
+				var observer = {
+				  next(res){
+					$("#percent").html("文件上传中..."+(+res.total.percent).toFixed(2) + '%');
+					if(res.total.percent == 100){
+						$(".load-cover").hide();
+					}
+				  },
+				  error(err){
+					if(uploadType == 1){
+						$('.video-tip').html('视频上传失败！请重新上传！');
+					}else{
+						$('.poster-tip').html('封面上传失败！请重新上传！');
+					}
+				  },
+				  complete(result){
+				  	// uploadData = result;
+				  	isUploading = false;
+				  	if(uploadType == 1){
+				  		hasPoster = false;
+				  		posterUrl = "https://shop-file.tiancaixing.com/"+result.key;
+				  		$('#video').attr('poster', posterUrl);
+				  		$('.poster-tip').html('封面上传成功！'+posterUrl);
+				  		// $('#mytext2').html('封面上传成功！<br>'+"文件地址：https://shop-file.tiancaixing.com/"+result.key)
+				  	}else{
+				  		hasVideo = false;
+				  		videoUrl = "https://shop-file.tiancaixing.com/"+result.key;
+				  		$('#video').attr('src', videoUrl);
+				  		$('.video-tip').html('视频上传成功！'+videoUrl);
+				  		// $('#mytext').html('视频上传成功！<br>'+"文件地址：https://shop-file.tiancaixing.com/"+result.key)
+				  	}
+				  	// $(uploadType ? '#mytext' : '#mytext2').html('上传成功！<br>'+"文件地址：https://shop-file.tiancaixing.com/"+result.key)
+				  	// addOkListener(result);
+				  	// insertUpload([{
+				  	// 	url: "https://shop-file.tiancaixing.com/"+res.key
+				  	// }])
+					// $("#mytext").val();
+				  }
+				}
+				var subscription = observable.subscribe(observer); // 这样传参形式也可以
+				isUploading = true;
+            }
+        });
+        $('#video')[0].pause();
+    })
+    $('#FileUpload2, #FileUpload').change(function(e){
+    	var fileObj = this.files;
+    	var isVideo = this.id === 'FileUpload';
+    	if(fileObj.length){
+    		var url = URL.createObjectURL(fileObj[0]);
+    		if(isVideo){
+    			vsize = (fileObj[0].size / 1024 / 1024).toFixed(1) + 'M';
+    			hasVideo = true;
+    			$('#video').attr('src', url);
+    		}else{
+    			hasPoster = true;
+    			$('#video').attr('poster', url);
+    		}
+    	}else if(isVideo){
+    		vsize = 0;
+    		hasPoster = false;
+    	}else{
+    		hasVideo = false;
+    	}
+    })
+    addOkListener()
+    function addOkListener(res){
+		dialog.onok = function(){
+			if(isUploading){
+				alert('文件还在上传，请耐心等待！')
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			if(hasVideo && !confirm('你选择的视频还没上传，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			if(hasPoster && !confirm('你选择的封面还没上传，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			if(!videoUrl && !confirm('还没上传视频，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			if(videoUrl && !posterUrl && !confirm('还没上传封面，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			posterUrl && videoUrl && insertUpload([{
+				poster: posterUrl,
+		  		url: videoUrl
+		  	}])
+		};
+		dialog.oncancel = function(){
+			if(isUploading && !confirm('文件还在上传，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			if(hasVideo && !confirm('你选择的视频还没上传，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			if(hasPoster && !confirm('你选择的封面还没上传，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			if(!videoUrl && !confirm('还没上传视频，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+			if(videoUrl && !posterUrl && !confirm('还没上传封面，确认要退出吗？')){
+				// 阻止弹框退出
+				throw new Error('暂停退出！');
+			}
+		};
+	}
+	//编辑视频时初始化相关信息
+	(function(){
+		var img = editor.selection.getRange().getClosedNode();
+		if(img && img.className){
+			var hasFakedClass = (img.className == "edui-faked-video"),
+				hasUploadClass = img.className.indexOf("edui-upload-video")!=-1;
+			if(hasFakedClass || hasUploadClass) {
+				videoUrl = img.getAttribute("_url");
+				posterUrl = img.getAttribute("poster");
+				width = img.width;
+				height = img.height;
+				vsize = img.getAttribute('vsize') || 0;
+				vduration = img.getAttribute('vduration') || '00:00';
+				align = domUtils.getComputedStyle(img,"float"),
+					parentAlign = domUtils.getComputedStyle(img.parentNode,"text-align");
+			}
+			if(hasUploadClass) {
+				isModifyUploadVideo = true;
+			}
+			posterUrl && $('#video').attr('poster', posterUrl);
+			videoUrl && $('#video').attr('src', videoUrl);
+			$('#video').css({
+				width: width + 'px',
+				height: height + 'px',
+				float: align || ''
+			});
+			$('.poster-tip').html('已上传封面文件：'+posterUrl);
+			$('.video-tip').html('已上传视频文件：'+videoUrl);
+		}
+	})();
+    /* 插入上传视频 */
+    function insertUpload(uploadVideoList){
+        var videoObjs=[],
+            uploadDir = editor.getOpt('videoUrlPrefix');
+        for(var key in uploadVideoList) {
+            var file = uploadVideoList[key];
+            videoObjs.push({
+                url: file.url,
+                width:width,
+                height:height,
+                align:align,
+                vsize: vsize,
+                vduration: vduration,
+                poster: file.poster
+            });
+        }
+        editor.execCommand('insertvideo', videoObjs, 'upload');
+    }
+
+
+	function createFileName(){
+		var d = new Date();
+		var filename = d.getFullYear()+"/"+(d.getMonth()+1)+"/"+d.getDate()+"/"+d.getTime()+"/";
+		var arr = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','v','u','w','x','y','z'];
+		for(var i=0;i<8;i++){
+			var tmp=Math.floor((Math.random()*arr.length));
+			filename += arr[tmp];
+		}
+
+		return filename;
+	}
+})
+</script>
+
+</html>
